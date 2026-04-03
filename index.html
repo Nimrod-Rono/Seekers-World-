@@ -1,104 +1,448 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Seekers-World AI Discovery</title>
-<style>
-body {
-  font-family: 'Arial', sans-serif;
-  background: linear-gradient(135deg, #0b1220, #1c1f2a);
-  color: #fff;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  margin: 0;
-}
-.container {
-  width: 90%;
-  max-width: 600px;
-  text-align: center;
-  background: rgba(255,255,255,0.05);
-  padding: 30px;
-  border-radius: 15px;
-  box-shadow: 0 0 20px rgba(255,111,145,0.4);
-}
-input {
-  width: 80%;
-  padding: 12px;
-  border-radius: 8px;
-  border: none;
-  margin: 15px 0;
-  font-size: 16px;
-}
-button {
-  padding: 12px 25px;
-  border: none;
-  border-radius: 8px;
-  background: #ff6f91;
-  color: #fff;
-  font-size: 16px;
-  cursor: pointer;
-  transition: 0.3s;
-}
-button:hover {
-  background: #ff4f71;
-}
-#response {
-  margin-top: 20px;
-  text-align: left;
-  font-size: 16px;
-  white-space: pre-wrap;
-}
-</style>
-</head>
-<body>
-<div class="container">
-  <h1>Seekers-World 🌍</h1>
-  <p>Ask anything and discover:</p>
-  <input type="text" id="query" placeholder="Type your question here...">
-  <button onclick="ask()">Discover</button>
-  <div id="response"></div>
-</div>
-<script>
-async function ask() {
-  const query = document.getElementById('query').value;
-  const responseDiv = document.getElementById('response');
-
-  if (!query) {
-    responseDiv.innerHTML = 'Please enter a question!';
-    return;
-  }
-
-  responseDiv.innerHTML = 'Searching... 🔍';
-
-  try {
-    // ----- GOOGLE KNOWLEDGE GRAPH -----
-    const googleKey = 'AIzaSyDSIy5m7mTXlMMR_OOdCu2Af_EwoCd124w';
-    const googleUrl = `https://kgsearch.googleapis.com/v1/entities:search?query=${encodeURIComponent(query)}&key=${googleKey}&limit=5&indent=True`;
-    const googleRes = await fetch(googleUrl);
-    const googleData = await googleRes.json();
-
-    let output = '🔹 Google Knowledge Graph Results:\n\n';
-    if (googleData.itemListElement && googleData.itemListElement.length > 0) {
-      googleData.itemListElement.forEach((item, i) => {
-        const entity = item.result;
-        output += `${i+1}. ${entity.name || 'N/A'}\n${entity.description || 'No description'}\n`;
-        if(entity.detailedDescription && entity.detailedDescription.url){
-          output += `Link: ${entity.detailedDescription.url}\n`;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seekers-World • AI Discovery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap');
+        
+        body {
+            background: linear-gradient(135deg, #0b1220, #1c1f2a);
+            font-family: 'Inter', system-ui, sans-serif;
         }
-        output += '\n';
-      });
-    } else {
-      output += 'No results found.\n\n';
-    }
+        .title-font {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        
+        .chat-container {
+            max-height: calc(100vh - 240px);
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #ff6f91 #1c1f2a;
+        }
+        
+        .message-bubble {
+            max-width: 78%;
+            padding: 16px 20px;
+            border-radius: 24px;
+            animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .user-bubble {
+            background: linear-gradient(90deg, #ff6f91, #ff8fa8);
+            color: white;
+            border-bottom-right-radius: 6px;
+        }
+        
+        .ai-bubble {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255,111,145,0.25);
+            border-bottom-left-radius: 6px;
+        }
+        
+        .star-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            overflow: hidden;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(12px);
+            padding: 12px 20px;
+            border-radius: 9999px;
+            width: fit-content;
+        }
+        
+        .typing-dot {
+            width: 7px;
+            height: 7px;
+            background: #ff6f91;
+            border-radius: 50%;
+            animation: typingBounce 1.4s infinite;
+        }
+        
+        .typing-dot:nth-child(2) { animation-delay: 160ms; }
+        .typing-dot:nth-child(3) { animation-delay: 320ms; }
+        
+        @keyframes typingBounce {
+            0%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-6px); }
+        }
+        
+        .glass {
+            background: rgba(255,255,255,0.06);
+            backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="min-h-screen text-white flex flex-col">
+    <!-- Starfield Background -->
+    <div class="star-bg" id="stars"></div>
 
-    responseDiv.innerHTML = output + '🤖 AI is thinking...\n';
+    <div class="max-w-4xl mx-auto w-full flex-1 flex flex-col px-4 pt-6">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8 glass rounded-3xl px-6 py-4 border border-white/10">
+            <div class="flex items-center gap-x-4">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#ff6f91] to-[#c74bff] flex items-center justify-center text-4xl shadow-[0_0_25px_-5px] shadow-[#ff6f91]/50">
+                    🌍
+                </div>
+                <div>
+                    <h1 class="title-font text-4xl font-semibold tracking-[-1px]">Seekers-World</h1>
+                    <p class="text-[#ff6f91] text-sm font-medium -mt-1">AI Discovery Engine</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-x-6">
+                <!-- Status -->
+                <div class="flex items-center gap-x-2 bg-white/10 px-5 py-2 rounded-3xl text-sm font-medium">
+                    <div class="w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></div>
+                    <span>Connected to the Cosmos</span>
+                </div>
+                
+                <!-- Clear button -->
+                <button onclick="clearChat()" 
+                        class="flex items-center gap-x-2 px-6 py-3 rounded-3xl hover:bg-white/10 transition-all text-sm font-medium">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span>Clear Journey</span>
+                </button>
+                
+                <!-- Info -->
+                <div onclick="showInfo()" class="w-9 h-9 flex items-center justify-center rounded-2xl hover:bg-white/10 cursor-pointer transition-all">
+                    <i class="fa-solid fa-circle-info text-xl"></i>
+                </div>
+            </div>
+        </div>
 
-    // ----- OPENAI GPT (AI RESPONSE) -----
-    const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
+        <!-- Welcome / Empty State -->
+        <div id="welcome-screen" class="flex-1 flex flex-col items-center justify-center text-center px-6">
+            <div class="mb-8">
+                <div class="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-gradient-to-br from-[#ff6f91]/20 to-[#c74bff]/20 mb-6">
+                    <span class="text-7xl">🔭</span>
+                </div>
+            </div>
+            <h2 class="title-font text-5xl font-semibold tracking-tighter mb-4">What will you discover today?</h2>
+            <p class="text-xl text-white/70 max-w-lg">Ask anything. Explore the unknown. Let the universe reveal its secrets.</p>
+            
+            <!-- Quick start hint -->
+            <div class="mt-12 text-white/40 text-sm flex items-center gap-x-2">
+                <i class="fa-solid fa-arrow-down"></i>
+                <span>Try one of the prompts below or type your own</span>
+            </div>
+        </div>
+
+        <!-- Chat Container -->
+        <div id="chat-container" class="hidden glass rounded-3xl flex-1 flex flex-col border border-white/10">
+            <div id="messages" class="chat-container flex-1 p-6 space-y-8"></div>
+        </div>
+
+        <!-- Suggested Prompts -->
+        <div id="suggestions" class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-auto mb-6"></div>
+
+        <!-- Input Bar -->
+        <div class="glass border border-white/10 rounded-3xl p-3 mb-6 shadow-2xl shadow-[#ff6f91]/10">
+            <div class="flex items-center gap-x-3">
+                <!-- Voice input -->
+                <button onclick="startVoiceInput()" 
+                        class="w-11 h-11 flex items-center justify-center text-[#ff6f91] hover:scale-110 transition-transform">
+                    <i class="fa-solid fa-microphone text-2xl"></i>
+                </button>
+                
+                <!-- Text input -->
+                <input 
+                    id="query-input"
+                    type="text"
+                    class="flex-1 bg-transparent outline-none text-[17px] placeholder:text-white/40 py-3 px-2"
+                    placeholder="Type your discovery question...">
+                
+                <!-- Send button -->
+                <button onclick="sendMessage()" 
+                        class="w-12 h-12 bg-gradient-to-br from-[#ff6f91] to-[#ff4f71] rounded-2xl flex items-center justify-center hover:shadow-lg hover:shadow-[#ff6f91]/40 transition-all active:scale-95">
+                    <i class="fa-solid fa-paper-plane text-white text-xl rotate-45"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="text-center text-xs text-white/30 pb-6">
+            Seekers-World AI • Powered by infinite curiosity • Standalone demo
+        </div>
+    </div>
+
+    <script>
+        // Tailwind initialization
+        function initTailwind() {
+            // No additional config needed - using arbitrary values
+        }
+        
+        // Create beautiful star field
+        function createStarField() {
+            const container = document.getElementById('stars');
+            for (let i = 0; i < 220; i++) {
+                const star = document.createElement('div');
+                const size = Math.random() * 3.5 + 0.8;
+                star.style.position = 'absolute';
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                star.style.background = 'white';
+                star.style.borderRadius = '50%';
+                star.style.opacity = Math.random() * 0.8 + 0.3;
+                star.style.boxShadow = `0 0 ${size * 2}px white`;
+                star.style.animation = `twinkle ${Math.random() * 4 + 3}s infinite alternate`;
+                container.appendChild(star);
+            }
+            
+            // Add CSS keyframes for twinkling
+            const style = document.createElement('style');
+            style.innerHTML = `
+                @keyframes twinkle {
+                    0% { opacity: 0.3; }
+                    100% { opacity: 1; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        let messages = [];
+        
+        // Mock AI responses that feel wise and discovery-focused
+        function getMockResponse(query) {
+            const intros = [
+                "🌌 A beautiful question. In the vast tapestry of existence I see...",
+                "🔭 My cosmic sensors reveal this insight about",
+                "✨ The universe smiles at your curiosity. Here's what I've discovered:",
+                "🌀 Diving into the unknown... The answer echoes back:"
+            ];
+            
+            const endings = [
+                "This discovery opens even more doors. What shall we explore next?",
+                "Knowledge like this changes how we see the world. Keep seeking.",
+                "The more we ask, the more the cosmos reveals. Your thoughts?",
+                "A true seeker’s question. The journey continues..."
+            ];
+            
+            const intro = intros[Math.floor(Math.random() * intros.length)];
+            const ending = endings[Math.floor(Math.random() * endings.length)];
+            
+            return `${intro} <strong>${query}</strong>. ${ending}`;
+        }
+        
+        // Render a single message
+        function renderMessage(role, content, container) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} group`;
+            
+            if (role === 'user') {
+                messageDiv.innerHTML = `
+                    <div class="max-w-[78%]">
+                        <div class="message-bubble user-bubble">
+                            <p class="leading-relaxed">${content}</p>
+                        </div>
+                        <div class="text-[10px] text-white/40 text-right mt-1">just now</div>
+                    </div>
+                    <div class="w-8 h-8 ml-3 bg-gradient-to-br from-[#ff6f91] to-white rounded-2xl flex items-center justify-center text-xs font-bold mt-1">YOU</div>
+                `;
+            } else {
+                messageDiv.innerHTML = `
+                    <div class="w-8 h-8 mr-3 bg-gradient-to-br from-violet-400 to-cyan-400 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0 mt-1">🌍</div>
+                    <div class="max-w-[78%]">
+                        <div class="message-bubble ai-bubble">
+                            <p class="leading-relaxed">${content}</p>
+                            <div class="flex justify-end gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-all">
+                                <button onclick="copyMessage(this)" class="text-[#ff6f91] text-xs flex items-center gap-1">
+                                    <i class="fa-solid fa-copy"></i> Copy
+                                </button>
+                            </div>
+                        </div>
+                        <div class="text-[10px] text-white/40 mt-1">Seekers AI • just now</div>
+                    </div>
+                `;
+            }
+            
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        // Add message + re-render
+        function addMessage(role, content) {
+            messages.push({ role, content });
+            const messagesContainer = document.getElementById('messages');
+            renderMessage(role, content, messagesContainer);
+        }
+        
+        // Show typing indicator
+        function showTyping(container) {
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typing-indicator';
+            typingDiv.className = 'flex justify-start';
+            typingDiv.innerHTML = `
+                <div class="w-8 h-8 mr-3 bg-gradient-to-br from-violet-400 to-cyan-400 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0">🌍</div>
+                <div class="typing-indicator">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <span class="text-xs text-white/50 ml-2">discovering...</span>
+                </div>
+            `;
+            container.appendChild(typingDiv);
+            container.scrollTop = container.scrollHeight;
+            return typingDiv;
+        }
+        
+        // Main send function
+        async function sendMessage() {
+            const input = document.getElementById('query-input');
+            const query = input.value.trim();
+            
+            if (!query) return;
+            
+            const messagesContainer = document.getElementById('messages');
+            const chatContainer = document.getElementById('chat-container');
+            const welcome = document.getElementById('welcome-screen');
+            
+            // First message → hide welcome, show chat
+            if (messages.length === 0) {
+                welcome.classList.add('hidden');
+                chatContainer.classList.remove('hidden');
+            }
+            
+            // Add user message immediately
+            addMessage('user', query);
+            input.value = '';
+            
+            // Show typing
+            const typingElement = showTyping(messagesContainer);
+            
+            // Fake network / thinking delay (realistic AI feel)
+            await new Promise(resolve => setTimeout(resolve, 1350 + Math.random() * 800));
+            
+            // Remove typing
+            if (typingElement) typingElement.remove();
+            
+            // Generate and show AI response
+            const response = getMockResponse(query);
+            addMessage('ai', response);
+            
+            // Persist to localStorage
+            localStorage.setItem('seekersChat', JSON.stringify(messages));
+        }
+        
+        // Voice input (Web Speech API)
+        function startVoiceInput() {
+            if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+                alert("Voice input is not supported in your browser.");
+                return;
+            }
+            
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                document.getElementById('query-input').value = transcript;
+                sendMessage();
+            };
+            
+            recognition.onerror = () => alert("Sorry, I couldn't hear you clearly.");
+            recognition.start();
+        }
+        
+        // Copy AI message
+        function copyMessage(btn) {
+            const bubble = btn.parentElement.parentElement;
+            const text = bubble.querySelector('p').innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                const original = btn.innerHTML;
+                btn.innerHTML = `<i class="fa-solid fa-check"></i> Copied!`;
+                setTimeout(() => btn.innerHTML = original, 1800);
+            });
+        }
+        
+        // Clear entire chat
+        function clearChat() {
+            if (!confirm('Erase this entire discovery journey?')) return;
+            
+            messages = [];
+            localStorage.removeItem('seekersChat');
+            
+            const messagesContainer = document.getElementById('messages');
+            messagesContainer.innerHTML = '';
+            
+            document.getElementById('chat-container').classList.add('hidden');
+            document.getElementById('welcome-screen').classList.remove('hidden');
+        }
+        
+        // Load suggestion prompt cards
+        function loadSuggestions() {
+            const container = document.getElementById('suggestions');
+            const prompts = [
+                "What hidden patterns connect the stars and human consciousness?",
+                "Explain the latest breakthroughs in quantum computing",
+                "How can one live with more wonder in everyday life?",
+                "Tell me a story about the first AI to reach the stars",
+                "What is the true nature of time?",
+                "How does the universe create beauty?"
+            ];
+            
+            prompts.forEach(prompt => {
+                const div = document.createElement('div');
+                div.className = "glass text-sm px-5 py-4 rounded-2xl border border-white/10 hover:border-[#ff6f91]/40 hover:scale-[1.02] cursor-pointer transition-all";
+                div.textContent = prompt;
+                div.onclick = () => {
+                    document.getElementById('query-input').value = prompt;
+                    sendMessage();
+                };
+                container.appendChild(div);
+            });
+        }
+        
+        // Show info modal
+        function showInfo() {
+            const infoHTML = `
+                <div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onclick="if(event.target === this) this.remove()">
+                    <div onclick="event.stopImmediatePropagation()" class="max-w-md mx-4 glass rounded-3xl p-8 text-center">
+                        <h3 class="title-font text-3xl mb-4">Seekers-World AI Discovery</h3>
+                        <p class="text-white/70 mb-8">This is a fully upgraded, standalone demo of a futuristic AI interface. Built with love for curiosity.</p>
+                        <ul class="text-left space-y-4 text-sm mb-10">
+                            <li class="flex items-start gap-3"><span class="text-[#ff6f91]">★</span> Full multi-turn chat experience</li>
+                            <li class="flex items-start gap-3"><span class="text-[#ff6f91]">★</span> Voice input support</li>
+                            <li class="flex items-start gap-3"><span class="text-[#ff6f91]">★</span> Cosmic animated background</li>
+                            <li class="flex items-start gap-3"><span class="text-[#ff6f91]">★</span> Persistent chat history</li>
+                            <li class="flex items-start gap-3"><span class="text-[#ff6f91]">★</span> Ready for real API integration</li>
+                        </ul>
+                        <button onclick="this.closest('.fixed').remove()" 
+                                class="px-8 py-3 bg-gradient-to-r from-[#ff6f91] to-[#c74bff] rounded-2xl font-medium">Continue the journey</button>
+                    </div>
+                </div>
+            `;
+            const modal = document.createElement('div');
+            modal.innerHTML = infoHTML;
+            document.body.appendChild(modal.firstElementChild);
+        }
+        
+        // Load previous chat from localStorage
+        function loadSavedChat() {
+        method: 'POST',
       headers: {
         'Authorization': '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', // replace with your OpenAI API key
         'Content-Type': 'application/json'
