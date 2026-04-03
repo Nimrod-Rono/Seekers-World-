@@ -56,7 +56,7 @@ button:hover {
 <body>
 <div class="container">
   <h1>Seekers-World 🌍</h1>
-  <p>Ask anything and discover with Google:</p>
+  <p>Ask anything and discover:</p>
   <input type="text" id="query" placeholder="Type your question here...">
   <button onclick="ask()">Discover</button>
   <div id="response"></div>
@@ -65,56 +65,57 @@ button:hover {
 async function ask() {
   const query = document.getElementById('query').value;
   const responseDiv = document.getElementById('response');
-  
+
   if (!query) {
     responseDiv.innerHTML = 'Please enter a question!';
     return;
   }
-  
+
   responseDiv.innerHTML = 'Searching... 🔍';
 
   try {
-    const apiKey = 'AIzaSyDSIy5m7mTXlMMR_OOdCu2Af_EwoCd124w';
-    const url = `https://kgsearch.googleapis.com/v1/entities:search?query=${encodeURIComponent(query)}&key=${apiKey}&limit=5&indent=True`;
-    
-    const res = await fetch(url);
-    const data = await res.json();
+    // ----- GOOGLE KNOWLEDGE GRAPH -----
+    const googleKey = 'AIzaSyDSIy5m7mTXlMMR_OOdCu2Af_EwoCd124w';
+    const googleUrl = `https://kgsearch.googleapis.com/v1/entities:search?query=${encodeURIComponent(query)}&key=${googleKey}&limit=5&indent=True`;
+    const googleRes = await fetch(googleUrl);
+    const googleData = await googleRes.json();
 
-    if (!data.itemListElement || data.itemListElement.length === 0) {
-      responseDiv.innerHTML = 'No results found.';
-      return;
+    let output = '🔹 Google Knowledge Graph Results:\n\n';
+    if (googleData.itemListElement && googleData.itemListElement.length > 0) {
+      googleData.itemListElement.forEach((item, i) => {
+        const entity = item.result;
+        output += `${i+1}. ${entity.name || 'N/A'}\n${entity.description || 'No description'}\n`;
+        if(entity.detailedDescription && entity.detailedDescription.url){
+          output += `Link: ${entity.detailedDescription.url}\n`;
+        }
+        output += '\n';
+      });
+    } else {
+      output += 'No results found.\n\n';
     }
 
-    let output = '';
-    data.itemListElement.forEach((item, index) => {
-      const entity = item.result;
-      output += `${index+1}. ${entity.name || 'N/A'}\n${entity.description || 'No description'}\n\n`;
-    });
+    responseDiv.innerHTML = output + '🤖 AI is thinking...\n';
 
-    responseDiv.innerHTML = output;
-
-  } catch (err) {
-    responseDiv.innerHTML = 'Error: ' + err.message;
-  }
-}
-
-  try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
+    // ----- OPENAI GPT (AI RESPONSE) -----
+    const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
       headers: {
-        "Authorization": "Bearer YOUR_API_KEY",
-       AIzaSyDSIy5m7mTXlMMR_OOdCu2Af_EwoCd124w "Content-Type": "application/json"
+        'Authorization': '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', // replace with your OpenAI API key
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: query }]
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: query }]
       })
     });
 
-    const data = await response.json();
-    responseDiv.innerHTML = data.choices[0].message.content;
-  } catch (error) {
-    responseDiv.innerHTML = "Error: " + error.message;
+    const openaiData = await openaiRes.json();
+    const aiText = openaiData.choices[0].message.content;
+
+    responseDiv.innerHTML = output + '🤖 AI Response:\n\n' + aiText;
+
+  } catch (err) {
+    responseDiv.innerHTML = 'Error: ' + err.message;
   }
 }
 </script>
